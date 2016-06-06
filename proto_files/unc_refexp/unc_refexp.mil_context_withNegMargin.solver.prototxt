@@ -1,0 +1,23 @@
+net: "./proto_files/unc_refexp/unc_refexp.mil_context_withNegMargin.prototxt"
+
+train_state: { }
+test_iter: 100 #7539
+test_state: { stage: 'test-on-train' }
+test_iter: 678
+test_state: { stage: 'test-on-val' }
+test_interval: 10000
+base_lr: 0.01
+lr_policy: "step"
+gamma: 0.5
+stepsize: 50000
+display: 100
+max_iter: 250000
+momentum: 0.9
+weight_decay: 0.0000
+snapshot: 10000
+#### Important: Ensure that the directory exists
+snapshot_prefix: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/models/UNC_RefExp_mil_context_withNegMargin_mcg/unc_refexp.mil_context_withNegMargin_mcg"
+solver_mode: GPU
+random_seed: 1071
+average_loss: 100
+clip_gradients: 10
