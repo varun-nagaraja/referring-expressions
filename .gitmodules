@@ -1,0 +1,9 @@
+[submodule "coco"]
+	path = coco
+	url = https://github.com/pdollar/coco
+[submodule "Google_Refexp_toolbox"]
+	path = Google_Refexp_toolbox
+	url = https://github.com/mjhucla/Google_Refexp_toolbox
+[submodule "caffe"]
+	path = caffe
+	url = https://github.com/varun-nagaraja/caffe

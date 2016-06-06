@@ -1,0 +1,256 @@
+name: "google_refexp"
+
+input: "timestep_cont"
+input_shape { dim: 1 dim: 10 dim: 10} #num_steps, batch_size, num_context
+
+input: "timestep_input"
+input_shape { dim: 1 dim: 10 dim: 10} #num_steps, batch_size, num_context
+
+input: "fc7_obj"
+input_shape { dim: 10 dim: 10 dim: 4096 } #batch_size, num_context, feature_length
+
+input: "context_fc7"
+input_shape { dim: 10 dim: 10 dim: 4096 } #batch_size, num_context, feature_length
+
+input: "bbox_features"
+input_shape { dim: 10 dim: 10 dim: 5 } #batch_size, num_context, feature_length
+
+input: "context_bbox_features"
+input_shape { dim: 10 dim: 10 dim: 5 } #batch_size, num_context, feature_length
+
+layer {
+  name: "reshape_fc7_obj"
+  type: "Reshape"
+  bottom: "fc7_obj"
+  top: "r_fc7_obj"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 4096
+    }
+  }
+}
+layer {
+  name: "reshape_context_fc7"
+  type: "Reshape"
+  bottom: "context_fc7"
+  top: "r_context_fc7"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 4096
+    }
+  }
+}
+layer {
+  name: "fc8"
+  type: "InnerProduct"
+  bottom: "r_fc7_obj"
+  top: "r_fc8_obj"
+  param {
+    name: "fc8_w"
+  }
+  param {
+    name: "fc8_b"
+  }
+  inner_product_param {
+    num_output: 1000
+    axis: 1
+  }
+}
+layer {
+  name: "fc8a"
+  type: "InnerProduct"
+  bottom: "r_context_fc7"
+  top: "r_context_fc8"
+  param {
+    name: "fc8_w"
+  }
+  param {
+    name: "fc8_b"
+  }
+  inner_product_param {
+    num_output: 1000
+    axis: 1
+  }
+}
+layer {
+  name: "scale_fc8_obj"
+  bottom: "r_fc8_obj"
+  top: "s_r_fc8_obj"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 0.025
+    shift: 0.25
+  }
+}
+layer {
+  name: "scale_context_fc8_obj"
+  bottom: "r_context_fc8"
+  top: "s_r_context_fc8_obj"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 0.025
+    shift: 0.25
+  }
+}
+layer {
+  name: "reshape_context_bbox_features"
+  type: "Reshape"
+  bottom: "context_bbox_features"
+  top: "r_context_bbox_features"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 5
+    }
+  }
+}
+layer {
+  name: "reshape_bbox_features"
+  type: "Reshape"
+  bottom: "bbox_features"
+  top: "r_bbox_features"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 5
+    }
+  }
+}
+layer {
+  name: "concat_obj_features"
+  bottom: "s_r_fc8_obj"
+  bottom: "s_r_context_fc8_obj"
+  bottom: "r_bbox_features"
+  bottom: "r_context_bbox_features"
+  top: "combined_features"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+layer {
+  name: "scale_combined_features"
+  bottom: "combined_features"
+  top: "s_combined_features"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 1
+    shift: -0.5
+  }
+}
+
+layer {
+  name: "reshape_timestep_input"
+  type: "Reshape"
+  bottom: "timestep_input"
+  top: "r_timestep_input"
+  reshape_param {
+    shape {
+      dim: 1
+      dim: -1
+    }
+  }
+}
+layer {
+  name: "reshape_timestep_cont"
+  type: "Reshape"
+  bottom: "timestep_cont"
+  top: "r_timestep_cont"
+  reshape_param {
+    shape {
+      dim: 1
+      dim: -1
+    }
+  }
+}
+layer {
+  name: "embedding"
+  type: "Embed"
+  bottom: "r_timestep_input"
+  top: "embedded_timestep_input"
+  embed_param {
+    bias_term: false
+    input_dim: 3489
+    num_output: 1024
+  }
+}
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "embedded_timestep_input"
+  bottom: "r_timestep_cont"
+  bottom: "s_combined_features"
+  top: "lstm1"
+  recurrent_param {
+    num_output: 1024
+  }
+}
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm1"
+  top: "predict"
+  inner_product_param {
+    num_output: 3489
+    axis: 2
+  }
+}
+layer {
+  name: "reshape_predict"
+  type: "Reshape"
+  bottom: "predict"
+  top: "r_predict"
+  reshape_param {
+    shape {
+      dim: 1
+      dim: 1
+      dim: -1
+      dim: 3489
+    }
+  }
+}
+layer {
+  name: "mil_predict"
+  type: "Pooling"
+  bottom: "r_predict"
+  top: "mil_predict"
+  pooling_param {
+    pool: MAX
+    kernel_h: 10 # num_context
+    kernel_w: 1
+    stride_h: 10 # num_context
+    stride_w: 1
+  }
+}
+layer {
+  name: "reshape_mil_predict"
+  type: "Reshape"
+  bottom: "mil_predict"
+  top: "r_mil_predict"
+  reshape_param {
+    shape {
+      dim: 1
+      dim: -1
+      dim: 3489
+    }
+  }
+}
+layer {
+  name: "probs"
+  type: "Softmax"
+  bottom: "r_mil_predict"
+  top: "probs"
+  softmax_param { axis: 2 }
+}
+layer {
+  name: "all_probs"
+  type: "Softmax"
+  bottom: "predict"
+  top: "all_probs"
+  softmax_param { axis: 2 }
+}

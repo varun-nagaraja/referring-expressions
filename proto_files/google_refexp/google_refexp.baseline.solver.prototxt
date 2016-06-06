@@ -1,0 +1,23 @@
+net: "proto_files/google_refexp/google_refexp.baseline.prototxt"
+
+train_state: { }
+test_iter: 100 #5338
+test_state: { stage: 'test-on-train' }
+test_iter: 300
+test_state: { stage: 'test-on-val' }
+test_interval: 10000
+base_lr: 0.01
+lr_policy: "step"
+gamma: 0.5
+stepsize: 50000
+display: 100
+max_iter: 250000
+momentum: 0.9
+weight_decay: 0.0000
+snapshot: 10000
+#### Important: Ensure that the directory exists
+snapshot_prefix: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/models/Google_RefExp_baseline/google_refexp.baseline"
+solver_mode: GPU
+random_seed: 1071
+average_loss: 100
+clip_gradients: 10

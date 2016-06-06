@@ -1,0 +1,128 @@
+name: "google_refexp"
+
+input: "timestep_cont"
+input_shape { dim: 1 dim: 100 }
+
+input: "timestep_input"
+input_shape { dim: 1 dim: 100 }
+
+input: "fc7_img"
+input_shape { dim: 100 dim: 4096 }
+
+input: "fc7_obj"
+input_shape { dim: 100 dim: 4096 }
+
+input: "bbox_features"
+input_shape { dim: 100 dim: 5 }
+
+layer {
+  name: "fc8"
+  type: "InnerProduct"
+  bottom: "fc7_obj"
+  top: "fc8_obj"
+  param {
+    name: "fc8_w"
+  }
+  param {
+    name: "fc8_b"
+  }
+  inner_product_param {
+    num_output: 1000
+  }
+}
+layer {
+  name: "fc8a"
+  type: "InnerProduct"
+  bottom: "fc7_img"
+  top: "fc8_img"
+  param {
+    name: "fc8_w"
+  }
+  param {
+    name: "fc8_b"
+  }
+  inner_product_param {
+    num_output: 1000
+  }
+}
+layer {
+  name: "scale_fc8_obj"
+  bottom: "fc8_obj"
+  top: "s_fc8_obj"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 0.025
+    shift: 0.25
+  }
+}
+layer {
+  name: "scale_fc8_img"
+  bottom: "fc8_img"
+  top: "s_fc8_img"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 0.025
+    shift: 0.25
+  }
+}
+layer {
+  name: "concat"
+  bottom: "s_fc8_obj"
+  bottom: "s_fc8_img"
+  bottom: "bbox_features"
+  top: "combined_features"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+layer {
+  name: "scale_combined_features"
+  bottom: "combined_features"
+  top: "s_combined_features"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 1
+    shift: -0.5
+  }
+}
+layer {
+  name: "embedding"
+  type: "Embed"
+  bottom: "timestep_input"
+  top: "embedded_timestep_input"
+  embed_param {
+    bias_term: false
+    input_dim: 3489
+    num_output: 1024
+  }
+}
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "embedded_timestep_input"
+  bottom: "timestep_cont"
+  bottom: "s_combined_features"
+  top: "lstm1"
+  recurrent_param { num_output: 1024 }
+}
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm1"
+  top: "predict"
+  inner_product_param {
+    num_output: 3489
+    axis: 2
+  }
+}
+layer {
+  name: "probs"
+  type: "Softmax"
+  bottom: "predict"
+  top: "probs"
+  softmax_param { axis: 2 }
+}

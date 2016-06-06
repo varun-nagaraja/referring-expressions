@@ -1,0 +1,640 @@
+name: "unc_refexp"
+
+# train data layers
+layer {
+  name: "data1"
+  type: "HDF5Data"
+  top: "fc7_obj"
+  top: "fc7_img"
+  top: "context_fc7"
+  top: "negative_fc7"
+  top: "bbox_features"
+  top: "context_bbox_features"
+  top: "img_bbox_features"
+  top: "negative_bbox_features"
+  include {
+    phase: TRAIN
+  }
+  hdf5_data_param {
+    source: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/h5_data/buffer_16/UNC_RefExp_train_mil_context_mcg_10/hdf5_chunk_list.txt"
+    batch_size: 16
+  }
+}
+layer {
+  name: "data2"
+  type: "HDF5Data"
+  top: "timestep_cont"
+  top: "timestep_input"
+  top: "timestep_target"
+  top: "pairwise_similarity"
+  include {
+    phase: TRAIN
+  }
+  hdf5_data_param {
+    source: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/h5_data/buffer_16/UNC_RefExp_train_mil_context_mcg_10/hdf5_chunk_list.txt"
+    batch_size: 10
+  }
+}
+
+# test on train data layers
+layer {
+  name: "data3"
+  type: "HDF5Data"
+  top: "fc7_obj"
+  top: "fc7_img"
+  top: "context_fc7"
+  top: "negative_fc7"
+  top: "bbox_features"
+  top: "context_bbox_features"
+  top: "img_bbox_features"
+  top: "negative_bbox_features"
+  include {
+    phase: TEST
+    stage: "test-on-train"
+  }
+  hdf5_data_param {
+    source: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/h5_data/buffer_16/UNC_RefExp_train_mil_context_mcg_10/hdf5_chunk_list.txt"
+    batch_size: 16
+  }
+}
+layer {
+  name: "data4"
+  type: "HDF5Data"
+  top: "timestep_cont"
+  top: "timestep_input"
+  top: "timestep_target"
+  top: "pairwise_similarity"
+  include {
+    phase: TEST
+    stage: "test-on-train"
+  }
+  hdf5_data_param {
+    source: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/h5_data/buffer_16/UNC_RefExp_train_mil_context_mcg_10/hdf5_chunk_list.txt"
+    batch_size: 10
+  }
+}
+
+# test on val data layers
+layer {
+  name: "data5"
+  type: "HDF5Data"
+  top: "fc7_obj"
+  top: "fc7_img"
+  top: "context_fc7"
+  top: "negative_fc7"
+  top: "bbox_features"
+  top: "context_bbox_features"
+  top: "img_bbox_features"
+  top: "negative_bbox_features"
+  include {
+    phase: TEST
+    stage: "test-on-val"
+  }
+  hdf5_data_param {
+    source: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/h5_data/buffer_16/UNC_RefExp_val_mil_context_mcg_10/hdf5_chunk_list.txt"
+    batch_size: 16
+  }
+}
+layer {
+  name: "data6"
+  type: "HDF5Data"
+  top: "timestep_cont"
+  top: "timestep_input"
+  top: "timestep_target"
+  top: "pairwise_similarity"
+  include {
+    phase: TEST
+    stage: "test-on-val"
+  }
+  hdf5_data_param {
+    source: "/home/varun/scratch/Datasets/MSCOCO/cache_dir/h5_data/buffer_16/UNC_RefExp_val_mil_context_mcg_10/hdf5_chunk_list.txt"
+    batch_size: 10
+  }
+}
+layer {
+  name: "reshape_fc7_obj"
+  type: "Reshape"
+  bottom: "fc7_obj"
+  top: "r_fc7_obj"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 4096
+    }
+  }
+}
+layer {
+  name: "reshape_fc7_img"
+  type: "Reshape"
+  bottom: "fc7_img"
+  top: "r_fc7_img"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 4096
+    }
+  }
+}
+layer {
+  name: "reshape_context_fc7"
+  type: "Reshape"
+  bottom: "context_fc7"
+  top: "r_context_fc7"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 4096
+    }
+  }
+}
+layer {
+  name: "reshape_negative_fc7"
+  type: "Reshape"
+  bottom: "negative_fc7"
+  top: "r_negative_fc7"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 4096
+    }
+  }
+}
+layer {
+  name: "vert_concat_fc7"
+  bottom: "r_fc7_obj"
+  bottom: "r_fc7_img"
+  bottom: "r_context_fc7"
+  bottom: "r_negative_fc7"
+  top: "vert_concat_fc7"
+  type: "Concat"
+  concat_param {
+    axis: 0
+  }
+}
+layer {
+  name: "fc8"
+  type: "InnerProduct"
+  bottom: "vert_concat_fc7"
+  top: "vert_concat_fc8"
+  param {
+    name: "fc8_w"
+    lr_mult: 0.1
+    decay_mult: 1
+  }
+  param {
+    name: "fc8_b"
+    lr_mult: 0.2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 1000
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    axis: 1
+  }
+}
+layer {
+  name: "scale_fc8_obj"
+  bottom: "vert_concat_fc8"
+  top: "s_vert_concat_fc8"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 0.025
+    shift: 0.25
+  }
+}
+layer {
+  name: "fc8_slicer"
+  type: "Slice"
+  bottom: "s_vert_concat_fc8"
+  top: "s_fc8_obj"
+  top: "s_fc8_img"
+  top: "s_context_fc8"
+  top: "s_negative_fc8"
+  slice_param {
+    axis: 0
+    slice_point: 80
+    slice_point: 160
+    slice_point: 240
+  }
+}
+
+layer {
+  name: "reshape_context_bbox_features"
+  type: "Reshape"
+  bottom: "context_bbox_features"
+  top: "r_context_bbox_features"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 5
+    }
+  }
+}
+layer {
+  name: "reshape_bbox_features"
+  type: "Reshape"
+  bottom: "bbox_features"
+  top: "r_bbox_features"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 5
+    }
+  }
+}
+layer {
+  name: "reshape_img_bbox_features"
+  type: "Reshape"
+  bottom: "img_bbox_features"
+  top: "r_img_bbox_features"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 5
+    }
+  }
+}
+layer {
+  name: "reshape_negative_bbox_features"
+  type: "Reshape"
+  bottom: "negative_bbox_features"
+  top: "r_negative_bbox_features"
+  reshape_param {
+    shape {
+      dim: -1
+      dim: 5
+    }
+  }
+}
+layer {
+  name: "concat_obj_features"
+  bottom: "s_fc8_obj"
+  bottom: "s_context_fc8"
+  bottom: "r_bbox_features"
+  bottom: "r_context_bbox_features"
+  top: "combined_features"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+layer {
+  name: "concat_obj_features_inverted"
+  bottom: "s_context_fc8"
+  bottom: "s_fc8_obj"
+  bottom: "r_context_bbox_features"
+  bottom: "r_bbox_features"
+  top: "combined_features_inverted"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+layer {
+  name: "concat_negative_features"
+  bottom: "s_negative_fc8"
+  bottom: "s_fc8_img"
+  bottom: "r_negative_bbox_features"
+  bottom: "r_img_bbox_features"
+  top: "combined_negative_features"
+  type: "Concat"
+  concat_param {
+    axis: 1
+  }
+}
+layer {
+  name: "concat_all_features"
+  bottom: "combined_features"
+  bottom: "combined_features_inverted"
+  bottom: "combined_negative_features"
+  top: "all_features"
+  type: "Concat"
+  concat_param {
+    axis: 0
+  }
+}
+layer {
+  name: "scale_all_features"
+  bottom: "all_features"
+  top: "s_all_features"
+  type: "Power"
+  power_param {
+    power: 1
+    scale: 1
+    shift: -0.5
+  }
+}
+layer {
+  name: "reshape_timestep_input"
+  type: "Reshape"
+  bottom: "timestep_input"
+  top: "r_timestep_input"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+    }
+  }
+}
+layer {
+  name: "tile_timestep_input"
+  type: "Tile"
+  bottom: "r_timestep_input"
+  top: "tile_timestep_input"
+  tile_param {
+    tiles: 3
+    axis: 1
+  }
+}
+layer {
+  name: "reshape_timestep_cont"
+  type: "Reshape"
+  bottom: "timestep_cont"
+  top: "r_timestep_cont"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+    }
+  }
+}
+layer {
+  name: "tile_timestep_cont"
+  type: "Tile"
+  bottom: "r_timestep_cont"
+  top: "tile_timestep_cont"
+  tile_param {
+    tiles: 3
+    axis: 1
+  }
+}
+layer {
+  name: "embedding"
+  type: "Embed"
+  bottom: "tile_timestep_input"
+  top: "embedded_timestep_input"
+  param {
+    lr_mult: 1
+  }
+  embed_param {
+    bias_term: false
+    input_dim: 2020
+    num_output: 1024
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+  }
+}
+layer {
+  name: "drop1"
+  type: "Dropout"
+  bottom: "embedded_timestep_input"
+  top: "embedded_timestep_input"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "lstm1"
+  type: "LSTM"
+  bottom: "embedded_timestep_input"
+  bottom: "tile_timestep_cont"
+  bottom: "s_all_features"
+  top: "lstm1"
+  param {
+    lr_mult: 1
+  }
+  recurrent_param {
+    num_output: 1024
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "drop2"
+  type: "Dropout"
+  bottom: "lstm1"
+  top: "lstm1"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "predict"
+  type: "InnerProduct"
+  bottom: "lstm1"
+  top: "predict"
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2020
+    weight_filler {
+      type: "uniform"
+      min: -0.08
+      max: 0.08
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+    axis: 2
+  }
+}
+layer {
+  name: "predict_slicer"
+  type: "Slice"
+  bottom: "predict"
+  top: "obj_predict"
+  top: "inverted_predict"
+  top: "negative_predict"
+  slice_param {
+    axis: 1
+    slice_point: 80
+    slice_point: 160
+  }
+}
+layer {
+  name: "reshape_predict"
+  type: "Reshape"
+  bottom: "obj_predict"
+  top: "r_obj_predict"
+  reshape_param {
+    shape {
+      dim: 1
+      dim: 10
+      dim: -1
+      dim: 2020
+    }
+  }
+}
+layer {
+  name: "mil_predict"
+  type: "Pooling"
+  bottom: "r_obj_predict"
+  top: "mil_predict"
+  pooling_param {
+    pool: MAX
+    kernel_h: 5
+    kernel_w: 1
+    stride_h: 5
+    stride_w: 1
+  }
+}
+layer {
+  name: "reshape_mil_predict1"
+  type: "Reshape"
+  bottom: "mil_predict"
+  top: "r_mil_predict"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+      dim: 1
+      dim: 2020
+    }
+  }
+}
+layer {
+  name: "tile_mil_predict"
+  type: "Tile"
+  bottom: "r_mil_predict"
+  top: "tile_r_mil_predict"
+  tile_param {
+    tiles: 5
+    axis: 2
+  }
+}
+layer {
+  name: "reshape_mil_predict2"
+  type: "Reshape"
+  bottom: "tile_r_mil_predict"
+  top: "r_tile_r_mil_predict"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+      dim: 2020
+    }
+  }
+}
+layer {
+  name: "reshape_timestep_target1"
+  type: "Reshape"
+  bottom: "timestep_target"
+  top: "r_timestep_target"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+      dim: 1
+    }
+  }
+}
+layer {
+  name: "tile_timestep_target"
+  type: "Tile"
+  bottom: "r_timestep_target"
+  top: "tile_timestep_target"
+  tile_param {
+    tiles: 5
+    axis: -1
+  }
+}
+layer {
+  name: "reshape_timestep_target2"
+  type: "Reshape"
+  bottom: "tile_timestep_target"
+  top: "r_tile_timestep_target"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+    }
+  }
+}
+layer {
+  name: "reshape_pairwise_similarity"
+  type: "Reshape"
+  bottom: "pairwise_similarity"
+  top: "r_pairwise_similarity"
+  reshape_param {
+    shape {
+      dim: 10
+      dim: -1
+    }
+  }
+}
+layer {
+  name: "cross_entropy_loss1"
+  type: "SoftmaxWithMaxMarginLoss"
+  bottom: "r_tile_r_mil_predict"
+  bottom: "r_tile_timestep_target"
+  bottom: "inverted_predict"
+  bottom: "r_pairwise_similarity"
+  top: "cross_entropy_loss1"
+  loss_param {
+    ignore_label: -1
+  }
+  softmax_param {
+    axis: 2
+  }
+  softmax_with_max_margin_loss_param {
+    margin: 0.1
+    lambda: 1
+  }
+}
+layer {
+  name: "cross_entropy_loss2"
+  type: "SoftmaxWithMaxMarginLoss"
+  bottom: "r_tile_r_mil_predict"
+  bottom: "r_tile_timestep_target"
+  bottom: "negative_predict"
+  bottom: "r_pairwise_similarity"
+  top: "cross_entropy_loss2"
+  loss_param {
+    ignore_label: -1
+  }
+  softmax_param {
+    axis: 2
+  }
+  softmax_with_max_margin_loss_param {
+    margin: 0.1
+    lambda: 1
+  }
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "r_tile_r_mil_predict"
+  bottom: "r_tile_timestep_target"
+  top: "accuracy"
+  include { phase: TEST }
+  accuracy_param {
+    axis: 2
+    ignore_label: -1
+  }
+}
