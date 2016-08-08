@@ -94,12 +94,12 @@ We will call the directory that you cloned this repository into as `$RefExp_ROOT
 
 Testing
 =======
-* Create cache directories where we will store the model and vocab files
+* Create cache directories where we will store the model and vocabulary files
 	```Shell
 	python lib/experiment_settings.py --coco_path $COCO_PATH
 	```
 
-* Download pre-trained vocab and model files
+* Download pre-trained vocabulary and model files
 	```Shell
 	cd $COCO_PATH/cache_dir
 	cd h5_data
@@ -120,9 +120,9 @@ Testing
 	tar -xzf mil_context_withNegMargin_models.tar.gz
 	rm mil_context_withNegMargin_models.tar.gz
 	# context models with positive bag margin
-	wget https://obj.umiacs.umd.edu/referring-expressions/mil_context_withPosNegMargin.tar.gz
-	tar -xzf mil_context_withPosNegMargin.tar.gz
-	rm mil_context_withPosNegMargin.tar.gz
+	wget https://obj.umiacs.umd.edu/referring-expressions/mil_context_withPosNegMargin_models.tar.gz
+	tar -xzf mil_context_withPosNegMargin_models.tar.gz
+	rm mil_context_withPosNegMargin_models.tar.gz
 	```
 
 * Evaluate on a dataset split
@@ -139,7 +139,7 @@ Training
 	```
 	This will first extract region features for all images in the dataset and dump them in a format suitable for loading in caffe. It will require a lot of space on disk depending on the experiment type you want to run.
 
-* If you are working with Google RefExp, we will split the training data to create a validation partition of our own. The test set of Google RefExp dataset is not yet released, 
+* If you are working with Google RefExp, we will split the training data to create a validation partition of our own. The test set of the Google RefExp dataset is not yet released.
 	```
 	cd $COCO_PATH/cache_dir/h5_data/buffer_16/Google_RefExp_baseline_20
 	head -n 5038 hdf5_chunk_list.txt > hdf5_chunk_list_part1.txt
