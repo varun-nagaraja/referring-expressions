@@ -124,6 +124,7 @@ Testing
 	tar -xzf mil_context_withPosNegMargin_models.tar.gz
 	rm mil_context_withPosNegMargin_models.tar.gz
 	```
+	**Note**: In the paper, for Google RefExp experiments, we report numbers from models trained on a subset of the training set since we use the remaining training set for validation. However, these pretrained models were trained on the entire training set and hence provide slighty better numbers than those reported in the paper.
 
 * Evaluate on a dataset split
 	```Shell
